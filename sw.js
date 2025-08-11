@@ -1,9 +1,12 @@
 // Aces Full Home Poker – service worker
 // Cache core shell so the app loads offline after first visit.
-const CACHE_NAME = 'aces-full-v1';
+const CACHE_NAME = 'aces-full-v2';
 const CORE_ASSETS = [
   './',
   './index.html',
+  './apple-touch-icon.png',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
