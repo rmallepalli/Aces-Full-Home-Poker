@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aces Full Home Poker</title>
+  <meta name="theme-color" content="#0f172a" />
+  <!-- iOS add-to-home support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="#" id="appleIcon" />
+  <!-- PWA manifest (filled at runtime with a data: URL so this stays single‑file) -->
+  <link rel="manifest" href="#" id="appManifest" />
+  <style>
+    :root {
+      --bg: #0f172a;          /* slate-900 */
+      --panel: #111827;       /* gray-900 */
+      --muted: #1f2937;       /* gray-800 */
+      --text: #e5e7eb;        /* gray-200 */
+      --text-dim: #9ca3af;    /* gray-400 */
+      --accent: #22c55e;      /* emerald-500 */
+      --accent-2: #60a5fa;    /* blue-400 */
+      --danger: #ef4444;      /* red-500 */
+      --warn: #f59e0b;        /* amber-500 */
+      --ok: #10b981;          /* green-500 */
+      --br: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: linear-gradient(180deg, #0b1025, var(--bg)); color: var(--text);
+      padding: 20px; line-height: 1.45;
+    }
+    h1 { font-size: 28px; margin: 0 0 12px; }
+    h2 { font-size: 18px; margin: 18px 0 8px; color: var(--text); }
+    .app { max-width: 1100px; margin: 0 auto; display: grid; gap: 16px; }
+    .row { display: grid; gap: 16px; grid-template-columns: 1.2fr 1fr; }
+    .panel { background: rgba(17,24,39,.85); border: 1px solid #1f2937; border-radius: var(--br); padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .muted { color: var(--text-dim); font-size: 13px; }
+    label { font-size: 13px; color: var(--text-dim); display:block; margin-bottom: 6px; }
+    input, select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #243146; background: #0b1224; color: var(--text); outline: none; }
+    input:focus { border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(96,165,250,.15); }
+    button { padding: 10px 14px; border-radius: 12px; border:1px solid #263245; background: #0b1222; color: var(--text); cursor: pointer; transition:.15s; }
+    button:hover { transform: translateY(-1px); border-color:#335078; }
+    .btn-accent { background: linear-gradient(180deg, #24c461, #179f4c); border-color: #1a7040; color: white; }
+    .btn-warn { background: linear-gradient(180deg, #f8b84d, #da8a10); border-color: #9a5f08; color: #1a1205; }
+    .btn-danger { background: linear-gradient(180deg, #f36969, #c73232); border-color: #8b2323; color: white; }
+    .btn-outline { background: transparent; }
+    .grid { display: grid; gap: 10px; grid-template-columns: repeat(12, 1fr); }
+    .col-2{grid-column:span 2}.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-6{grid-column:span 6}.col-8{grid-column:span 8}.col-12{grid-column:span 12}
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #1f2937; text-align: left; vertical-align: middle; }
+    thead th { color: #9ca3af; font-weight: 600; font-size: 13px; }
+    .tag { padding: 2px 8px; border-radius: 999px; font-size: 12px; border:1px solid #334155; background:#0b1224; color:#cbd5e1; }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid #334155; background:#0b1224; }
+    .chip input { width:80px; padding:4px 6px; border-radius:8px; border:1px solid #263245; background:#0b1224; color:var(--text); }
+    .chip button { padding:4px 8px; border-radius:8px; border:1px solid #334155; background:transparent; }
+    .right { text-align:right; }
+    .divider { height:1px; background:#1f2937; margin:10px 0; }
+    .hidden { display:none !important; }
+    .success { color: #bbf7d0; font-size: 13px; }
+    .error { color: #fecaca; font-size: 13px; }
+    .mono { font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+    @media (max-width: 900px){ .row{ grid-template-columns: 1fr } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h1>♠ Aces Full Home Poker</h1>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button id="newGameBtn" class="btn-accent">➕ New Game</button>
+          <button id="saveGameBtn" title="Save snapshot" class="btn-outline">💾 Save</button>
+          <button id="exportBtn" class="btn-outline">⬇ Export JSON</button>
+          <label class="btn-outline" style="position:relative; overflow:hidden;">
+            ⬆ Import JSON
+            <input id="importInput" type="file" accept="application/json" style="position:absolute; inset:0; opacity:0; cursor:pointer;" />
+          </label>
+        </div>
+      </div>
+      <div class="muted">Runs fully offline in this browser. Data is stored in localStorage; use Export/Import for backups.</div>
+    </header>
+
+    <div class="row">
+      <section class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+          <h2>Current Game</h2>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <span id="gameStatusTag" class="tag">—</span>
+            <span class="tag" id="gameDateTag"></span>
+            <span class="tag" id="gameHostTag"></span>
+            <span class="tag"><span class="mono" id="gameIdTag"></span></span>
+          </div>
+        </div>
+
+        <div id="noGame" class="muted">No game loaded. Click <b>New Game</b> or pick one on the right.</div>
+
+        <div id="gameArea" class="hidden">
+          <!-- Game info: Host & Date -->
+          <h2>Game Info</h2>
+          <div class="grid">
+            <div class="col-4">
+              <label>Host name</label>
+              <input id="hostName" placeholder="e.g., John"/>
+            </div>
+            <div class="col-4">
+              <label>Date</label>
+              <input id="gameDate" type="date"/>
+            </div>
+          </div>
+
+          <!-- Add players -->
+          <h2>Add Players</h2>
+          <div class="grid">
+            <div class="col-4">
+              <label>Player name</label>
+              <input id="playerName" placeholder="e.g., Alex"/>
+            </div>
+            <div class="col-3">
+              <label>Initial buy‑in ($)</label>
+              <input id="playerInitial" type="number" min="0" step="1" value="100" />
+            </div>
+            <div class="col-2" style="display:flex; align-items:flex-end;">
+              <button id="addPlayerBtn" class="btn-accent" style="width:100%">Add Player</button>
+            </div>
+          </div>
+          <div id="playerError" class="error"></div>
+
+          <!-- Players table -->
+          <div class="divider"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h2>Players & Buy‑ins</h2>
+            <div class="muted">Edit any buy amount inline. Use “Rebuy” to add more.</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th class="right">Total In ($)</th>
+                <th>Buys (editable)</th>
+                <th class="right"></th>
+              </tr>
+            </thead>
+            <tbody id="playersTbody"></tbody>
+            <tfoot>
+              <tr>
+                <td></td>
+                <td class="right"><b>Total Bank</b></td>
+                <td class="right" id="totalBank">0</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <!-- End game / cashouts -->
+          <div class="divider"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h2>Cash Out & Settle</h2>
+            <div>
+              <button id="computeBtn" class="btn-warn">Compute Results</button>
+              <button id="finalizeBtn" class="btn-danger" title="Locks the game (no further edits).">Finalize Game</button>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Player</th>
+                <th class="right">Total In ($)</th>
+                <th class="right">Cash Out ($)</th>
+                <th class="right">Net ($)</th>
+              </tr>
+            </thead>
+            <tbody id="cashoutTbody"></tbody>
+            <tfoot>
+              <tr>
+                <td></td>
+                <td class="right"><b>Totals</b></td>
+                <td class="right" id="sumIn">0</td>
+                <td class="right" id="sumOut">0</td>
+                <td class="right" id="sumNet">0</td>
+              </tr>
+            </tfoot>
+          </table>
+          <div id="computeMsg" class="muted" style="margin-top:8px"></div>
+
+          <div class="divider"></div>
+          <h2>Settlement (Who pays whom)</h2>
+          <div id="settlements"></div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+          <h2>Saved Games</h2>
+          <button id="refreshListBtn" class="btn-outline">↻ Refresh</button>
+        </div>
+        <div class="muted">Snapshots are saved in your browser storage. Select one to resume or review.</div>
+        <div class="divider"></div>
+        <div id="gamesList"></div>
+      </aside>
+    </div>
+
+    <div class="muted" style="font-size:12px; text-align:center;">Pro tip: Export JSON after your game for an off‑browser backup.</div>
+  </div>
+
+  <script>
+  // --------------------- Persistence Helpers ---------------------
+  const STORAGE_INDEX = 'pokerGames:index';
+  function loadIndex(){ try { return JSON.parse(localStorage.getItem(STORAGE_INDEX)) || []; } catch{ return []; } }
+  function saveIndex(idx){ localStorage.setItem(STORAGE_INDEX, JSON.stringify(idx)); }
+  function gameKey(id){ return `pokerGame:${id}`; }
+  function saveGame(g){
+    const idx = loadIndex();
+    if(!idx.find(x=>x.id===g.id)){
+      idx.unshift({id:g.id, date:g.date, host:g.host||'', status:g.status});
+    } else {
+      idx.forEach(x=>{ if(x.id===g.id){ x.date=g.date; x.host=g.host||''; x.status=g.status; } });
+    }
+    saveIndex(idx);
+    localStorage.setItem(gameKey(g.id), JSON.stringify(g));
+  }
+  function loadGame(id){ const raw = localStorage.getItem(gameKey(id)); return raw ? JSON.parse(raw) : null; }
+  function deleteGame(id){ localStorage.removeItem(gameKey(id)); const idx = loadIndex().filter(x=>x.id!==id); saveIndex(idx); }
+
+  // --------------------- State ---------------------
+  let state = null; // current game
+
+  function uuid(){ try{ return (crypto && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2); }catch{ return Math.random().toString(36).slice(2); } }
+
+  function newGame(){
+    const id = Date.now().toString(36);
+    const date = new Date().toISOString().slice(0,10);
+    state = { id, date, host:'', status:'open', players:[], cashouts:{}, finalized:false };
+    saveGame(state); renderAll();
+  }
+
+  function ensureGame(){ if(!state){ alert('Create or load a game first.'); return false;} return true; }
+
+  // --------------------- Players & Buys ---------------------
+  function addPlayer(name, initial){
+    if(!ensureGame()) return;
+    name = (name||'').trim();
+    if(!name) throw new Error('Player name is required.');
+    const exists = state.players.find(p=>p.name.toLowerCase()===name.toLowerCase());
+    if(exists) throw new Error('Player with this name already exists.');
+    const initialAmt = Math.max(0, +initial || 0);
+    const player = { id: uuid(), name, buys: [] };
+    if(initialAmt>0){ player.buys.push({ amount: initialAmt, at: Date.now() }); }
+    state.players.push(player);
+    saveGame(state); renderAll();
+  }
+
+  function totalIn(p){ return p.buys.reduce((a,b)=>a + (+b.amount||0), 0); }
+  function totalBank(){ return state.players.reduce((a,p)=> a + totalIn(p), 0); }
+
+  function addRebuy(pid){ if(!ensureGame()) return; const p = state.players.find(x=>x.id===pid); if(!p) return;
+    const amtStr = prompt('Rebuy amount ($):', '100'); if(amtStr==null) return; const amt = +amtStr; if(!(amt>0)) return alert('Enter a positive number.');
+    p.buys.push({ amount: amt, at: Date.now() }); saveGame(state); renderAll(); }
+
+  function updateBuy(pid, idx, val){ if(!ensureGame()) return; const p = state.players.find(x=>x.id===pid); if(!p) return; const amt = +val; if(!(amt>=0)) return; p.buys[idx].amount = amt; saveGame(state); renderAll(); }
+  function deleteBuy(pid, idx){ if(!ensureGame()) return; const p = state.players.find(x=>x.id===pid); if(!p) return; p.buys.splice(idx,1); saveGame(state); renderAll(); }
+  function renamePlayer(pid){ const p = state.players.find(x=>x.id===pid); if(!p) return; const nv = prompt('New name:', p.name); if(!nv) return; p.name = nv.trim(); saveGame(state); renderAll(); }
+  function removePlayer(pid){ if(!confirm('Remove this player and their buy‑ins?')) return; state.players = state.players.filter(p=>p.id!==pid); delete state.cashouts[pid]; saveGame(state); renderAll(); }
+
+  // --------------------- Cashouts / Settlement ---------------------
+  function setCashout(pid, val){ if(!ensureGame()) return; state.cashouts[pid] = +val || 0; saveGame(state); renderSums(); }
+
+  function computeResults(){
+    if(!ensureGame()) return;
+    const ins = state.players.map(p=>({ id:p.id, name:p.name, in: totalIn(p), out: +state.cashouts[p.id]||0 }));
+    const sumIn = ins.reduce((a,b)=>a+b.in,0);
+    const sumOut = ins.reduce((a,b)=>a+b.out,0);
+    const nets = ins.map(x=>({ ...x, net: +(x.out - x.in).toFixed(2) }));
+    const delta = +(sumOut - sumIn).toFixed(2);
+
+    const msgEl = document.getElementById('computeMsg');
+    if(delta!==0){ msgEl.innerHTML = `⚠ Totals don\'t match: bank in = $${sumIn}, cash out = $${sumOut}. Adjust cash outs (difference $${delta}).`; msgEl.className='error'; }
+    else { msgEl.innerHTML = '✅ Totals match. You can finalize the game to lock it.'; msgEl.className='success'; }
+
+    // creditors (net>0) receive; debtors (net<0) pay
+    const creditors = nets.filter(n=>n.net>0).map(n=>({ name:n.name, id:n.id, amt:n.net }));
+    const debtors   = nets.filter(n=>n.net<0).map(n=>({ name:n.name, id:n.id, amt:-n.net }));
+    creditors.sort((a,b)=>b.amt-a.amt); debtors.sort((a,b)=>b.amt-a.amt);
+
+    const tx = [];
+    let i=0, j=0;
+    while(i<debtors.length && j<creditors.length){
+      const pay = Math.min(debtors[i].amt, creditors[j].amt);
+      if(pay>0) tx.push({ from: debtors[i].name, to: creditors[j].name, amount: +pay.toFixed(2) });
+      debtors[i].amt = +(debtors[i].amt - pay).toFixed(2);
+      creditors[j].amt = +(creditors[j].amt - pay).toFixed(2);
+      if(debtors[i].amt===0) i++;
+      if(creditors[j].amt===0) j++;
+    }
+
+    renderSettlement(tx);
+    renderSums();
+  }
+
+  function finalizeGame(){
+    if(!ensureGame()) return;
+    computeResults();
+    const sumIn = totalBank();
+    const sumOut = state.players.reduce((a,p)=>a + (+state.cashouts[p.id]||0), 0);
+    if(+(sumIn - sumOut).toFixed(2) !== 0){ if(!confirm('Totals do not match. Finalize anyway?')) return; }
+    state.status = 'final'; state.finalized = true; saveGame(state); renderAll();
+  }
+
+  // --------------------- Rendering ---------------------
+  function $(id){ return document.getElementById(id); }
+
+  function renderPlayers(){
+    const tb = $('playersTbody'); tb.innerHTML = '';
+    if(!state) return;
+    state.players.forEach((p, idx)=>{
+      const tr = document.createElement('tr');
+
+      const c0 = document.createElement('td'); c0.textContent = idx+1; tr.appendChild(c0);
+      const c1 = document.createElement('td');
+      const nameWrap = document.createElement('div'); nameWrap.style.display='flex'; nameWrap.style.gap='8px'; nameWrap.style.alignItems='center';
+      const nameB = document.createElement('b'); nameB.textContent = p.name; nameWrap.appendChild(nameB);
+      if(!state.finalized){
+        const renameBtn = document.createElement('button'); renameBtn.className='btn-outline'; renameBtn.textContent='✏️'; renameBtn.title='Rename'; renameBtn.onclick=()=>renamePlayer(p.id); nameWrap.appendChild(renameBtn);
+      }
+      c1.appendChild(nameWrap); tr.appendChild(c1);
+
+      const c2 = document.createElement('td'); c2.className='right'; c2.textContent = `$${totalIn(p).toFixed(2)}`; tr.appendChild(c2);
+
+      const c3 = document.createElement('td');
+      p.buys.forEach((b, bIdx)=>{
+        const chip = document.createElement('span'); chip.className='chip'; chip.style.marginRight='6px';
+        const inp = document.createElement('input'); inp.type='number'; inp.min='0'; inp.step='1'; inp.value= b.amount; inp.disabled = !!state.finalized;
+        inp.onchange = ()=> updateBuy(p.id, bIdx, inp.value);
+        const del = document.createElement('button'); del.textContent='×'; del.title='Remove this buy'; del.onclick=()=>deleteBuy(p.id, bIdx); del.disabled = !!state.finalized;
+        chip.append(inp, del); c3.appendChild(chip);
+      });
+      tr.appendChild(c3);
+
+      const c4 = document.createElement('td'); c4.className='right';
+      if(!state.finalized){
+        const rebuyBtn = document.createElement('button'); rebuyBtn.className='btn-accent'; rebuyBtn.textContent='Rebuy'; rebuyBtn.onclick=()=>addRebuy(p.id);
+        const rmBtn = document.createElement('button'); rmBtn.className='btn-outline'; rmBtn.textContent='Remove'; rmBtn.style.marginLeft='6px'; rmBtn.onclick=()=>removePlayer(p.id);
+        c4.append(rebuyBtn, rmBtn);
+      }
+      tr.appendChild(c4);
+
+      tb.appendChild(tr);
+    });
+    $('totalBank').textContent = totalBank().toFixed(2);
+  }
+
+  function renderCashouts(){
+    const tb = $('cashoutTbody'); tb.innerHTML='';
+    if(!state) return;
+    state.players.forEach((p, idx)=>{
+      const inTotal = totalIn(p);
+      const val = +(state.cashouts[p.id]||0);
+      const net = +(val - inTotal).toFixed(2);
+      const tr = document.createElement('tr');
+      const c0 = document.createElement('td'); c0.textContent = idx+1; tr.appendChild(c0);
+      const c1 = document.createElement('td'); c1.textContent = p.name; tr.appendChild(c1);
+      const c2 = document.createElement('td'); c2.className='right'; c2.textContent = `$${inTotal.toFixed(2)}`; tr.appendChild(c2);
+      const c3 = document.createElement('td'); c3.className='right';
+      if(state.finalized){
+        c3.textContent = `$${val.toFixed(2)}`;
+      } else {
+        const inp = document.createElement('input'); inp.type='number'; inp.min='0'; inp.step='1'; inp.value=val; inp.style.width='120px'; inp.oninput=()=>setCashout(p.id, inp.value);
+        c3.appendChild(inp);
+      }
+      tr.appendChild(c3);
+      const c4 = document.createElement('td'); c4.className='right';
+      const span = document.createElement('span'); span.className='mono'; span.textContent = `${net>0?'+':''}${net.toFixed(2)}`; c4.appendChild(span); tr.appendChild(c4);
+      tb.appendChild(tr);
+    });
+  }
+
+  function renderSums(){
+    if(!state) return;
+    const sumIn = totalBank();
+    const sumOut = state.players.reduce((a,p)=>a + (+state.cashouts[p.id]||0), 0);
+    const sumNet = +(sumOut - sumIn).toFixed(2);
+    $('sumIn').textContent = `$${sumIn.toFixed(2)}`;
+    $('sumOut').textContent = `$${sumOut.toFixed(2)}`;
+    $('sumNet').textContent = `${sumNet>0?'+':''}$${sumNet.toFixed(2)}`;
+  }
+
+  function renderSettlement(tx){
+    const wrap = $('settlements'); wrap.innerHTML = '';
+    if(!tx || !tx.length){ wrap.innerHTML = '<div class="muted">No transfers needed yet (or totals don\'t match).</div>'; return; }
+    const ul = document.createElement('ul'); ul.style.listStyle='none'; ul.style.padding='0'; ul.style.margin='0';
+    tx.forEach(t=>{
+      const li = document.createElement('li');
+      li.style.padding = '8px 0';
+      li.style.borderBottom = '1px solid #1f2937';
+      li.innerHTML = `💸 <b>${t.from}</b> pays <b>${t.to}</b> <span class="mono">$${t.amount.toFixed(2)}</span>`;
+      ul.appendChild(li);
+    });
+    wrap.appendChild(ul);
+  }
+
+  function renderHeader(){
+    if(!state){ $('noGame').classList.remove('hidden'); $('gameArea').classList.add('hidden'); return; }
+    $('noGame').classList.add('hidden'); $('gameArea').classList.remove('hidden');
+    $('gameDateTag').textContent = state.date;
+    $('gameHostTag').textContent = state.host ? `Host: ${state.host}` : 'Host: —';
+    $('gameIdTag').textContent = state.id;
+    $('gameStatusTag').textContent = state.finalized? 'Final' : 'Open';
+    $('gameStatusTag').style.background = state.finalized? '#1a3623' : '#1a2336';
+
+    // Populate inputs
+    $('hostName').value = state.host || '';
+    $('gameDate').value = state.date || '';
+  }
+
+  function renderGamesList(){
+    const host = $('gamesList'); host.innerHTML = '';
+    const idx = loadIndex();
+    if(!idx.length){ host.innerHTML = '<div class="muted">No saved games yet.</div>'; return; }
+    idx.forEach((g)=>{
+      const row = document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center'; row.style.padding='10px 0'; row.style.borderBottom='1px solid #1f2937';
+      const left = document.createElement('div');
+      left.innerHTML = `<div><b>${g.date}</b> — Host: ${g.host || '—'} <span class="tag">${g.status||'open'}</span></div><div class="muted mono">${g.id}</div>`;
+      const right = document.createElement('div');
+      const loadBtn = document.createElement('button'); loadBtn.textContent='Load'; loadBtn.onclick=()=>{ const gg=loadGame(g.id); if(gg){ state=gg; renderAll(); } };
+      const delBtn = document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='btn-outline'; delBtn.onclick=()=>{ if(confirm('Delete this saved game?')){ deleteGame(g.id); if(state && state.id===g.id){ state=null; } renderGamesList(); renderAll(); }};
+      right.append(loadBtn, delBtn); row.append(left, right); host.appendChild(row);
+    });
+  }
+
+  function renderAll(){ renderHeader(); renderPlayers(); renderCashouts(); renderSums(); renderGamesList(); }
+
+  // --------------------- Wire up UI ---------------------
+  window.addEventListener('DOMContentLoaded', ()=>{
+    $('newGameBtn').onclick = newGame;
+    $('saveGameBtn').onclick = ()=>{ if(!state) return alert('No game to save.'); state.host=$('hostName').value.trim(); state.date=$('gameDate').value || state.date; saveGame(state); renderGamesList(); alert('Saved!'); };
+    $('refreshListBtn').onclick = renderGamesList;
+    $('computeBtn').onclick = computeResults;
+    $('finalizeBtn').onclick = finalizeGame;
+    $('addPlayerBtn').onclick = ()=>{
+      const name = $('playerName').value;
+      const initial = $('playerInitial').value;
+      $('playerError').textContent = '';
+      try { addPlayer(name, initial); $('playerName').value=''; }
+      catch(e){ $('playerError').textContent = e.message; }
+    };
+
+    // Update host/date live
+    $('hostName').addEventListener('change', ()=>{ if(!state) return; state.host = $('hostName').value.trim(); saveGame(state); renderHeader(); renderGamesList(); });
+    $('gameDate').addEventListener('change', ()=>{ if(!state) return; state.date = $('gameDate').value || state.date; saveGame(state); renderHeader(); renderGamesList(); });
+
+    $('exportBtn').onclick = ()=>{
+      const idx = loadIndex();
+      const all = { index: idx, games: idx.map(x=>loadGame(x.id)).filter(Boolean) };
+      const blob = new Blob([JSON.stringify(all,null,2)], { type:'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download=`poker-night-export-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
+    };
+
+    $('importInput').addEventListener('change', async (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const text = await file.text();
+      try{
+        const data = JSON.parse(text);
+        if(data.index && data.games){
+          saveIndex(data.index);
+          data.games.forEach(g=> localStorage.setItem(gameKey(g.id), JSON.stringify(g)) );
+          alert('Import complete.'); renderGamesList();
+        } else { alert('Invalid file.'); }
+      }catch(err){ alert('Failed to import JSON.'); }
+      e.target.value = '';
+    });
+
+    // Auto-load most recent game if present
+    const idx = loadIndex(); if(idx.length){ state = loadGame(idx[0].id); }
+    renderAll();
+  });
+
+  // Expose for potential console debugging
+  window._poker_state = () => state;
+  </script>
+  <script>
+    // --- Minimal PWA bootstrap (manifest via data URL + install button) ---
+    (function(){
+      const iconSvg = encodeURIComponent(`<?xml version="1.0" encoding="UTF-8"?>
+      <svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'>
+        <defs>
+          <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+            <stop offset='0%' stop-color='#0b1025'/>
+            <stop offset='100%' stop-color='#0f172a'/>
+          </linearGradient>
+        </defs>
+        <rect width='512' height='512' fill='url(#g)'/>
+        <g fill='#22c55e'>
+          <path d='M256 80c-40 60-120 130-120 200a120 120 0 0 0 240 0c0-70-80-140-120-200z'/>
+        </g>
+        <text x='256' y='340' font-size='160' text-anchor='middle' fill='#e5e7eb' font-family='system-ui,Segoe UI,Arial'>A</text>
+      </svg>`);
+      const iconData = `data:image/svg+xml;charset=utf-8,${iconSvg}`;
+      const manifest = {
+        name: 'Aces Full Home Poker',
+        short_name: 'Aces Full',
+        start_url: './index.html',
+        scope: './',
+        display: 'standalone',
+        background_color: '#0f172a',
+        theme_color: '#0f172a',
+        icons: [
+          { src: iconData, sizes: '192x192', type: 'image/svg+xml' },
+          { src: iconData, sizes: '512x512', type: 'image/svg+xml' }
+        ]
+      };
+      const mUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }));
+      const link = document.getElementById('appManifest');
+      if(link) link.setAttribute('href', mUrl);
+      const appleIcon = document.getElementById('appleIcon');
+      if(appleIcon) appleIcon.setAttribute('href', iconData);
+
+      // Install button UI
+      let deferredPrompt = null;
+      const installBtn = document.createElement('button');
+      installBtn.textContent = '⬇ Install App';
+      installBtn.className = 'btn-outline';
+      installBtn.style.marginLeft = '8px';
+      installBtn.style.display = 'none';
+      const headerBtns = document.querySelector('header .btn-outline')?.parentElement || document.querySelector('header');
+      headerBtns && headerBtns.prepend(installBtn);
+
+      window.addEventListener('beforeinstallprompt', (e)=>{
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'inline-block';
+      });
+
+      installBtn.addEventListener('click', async ()=>{
+        if(!deferredPrompt){ alert('If you do not see an install option, ensure the page is served via HTTPS or from your device.'); return; }
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      });
+
+      // Helpful hint if not on secure context
+      if(!(location.protocol === 'https:' || location.hostname === 'localhost')){
+        console.log('PWA install requires HTTPS or localhost. You can still use the app.');
+      }
+    })();
+  </script>
+</body>
+</html>
